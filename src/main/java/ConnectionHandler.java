@@ -1,16 +1,16 @@
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectionHandler {
+    public static final String GET = "GET";
+    public static final String POST = "POST";
     final Socket clientSocket;
     final RequestHandlerImpl requestHandler;
     final ConcurrentHashMap<String, ConcurrentHashMap<String, Handler>> requestHandlersMap;
-    final List<String> validPaths = List.of("/index.html", "/spring.svg", "/spring.png", "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html", "/events.html", "/events.js");
 
     public ConnectionHandler(Socket clientSocket, ConcurrentHashMap<String, ConcurrentHashMap<String, Handler>> requestHandlersMap) {
         this.clientSocket = clientSocket;
@@ -24,59 +24,87 @@ public class ConnectionHandler {
             System.out.println(Thread.currentThread().getName());
 
             final BufferedOutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
-            final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            final BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
+            final var allowedMethods = List.of(GET, POST);
 
             Request request;
             RequestBuilder requestBuilder = new RequestBuilder();
 
-            final var requestLine = in.readLine();
-            final var parts = requestLine.split(" ");
+            final var limit = 4096;
 
-            if (parts.length != 3) {
-                // just close socket
+            in.mark(limit);
+            final var buffer = new byte[limit];
+            final var read = in.read(buffer);
+
+            final var requestLineDelimiter = new byte[]{'\r', '\n'};
+            final var requestLineEnd = indexOf(buffer, requestLineDelimiter, 0, read);
+
+            if(requestLineEnd == -1){
+                requestHandler.badRequest(out);
                 return;
             }
 
+            final var requestLine = new String(Arrays.copyOf(buffer, requestLineEnd)).split(" ");
+            if (requestLine.length != 3){
+                requestHandler.badRequest(out);
+                return;
+            }
+
+            final var method = requestLine[0];
+            if (!allowedMethods.contains(method)){
+                requestHandler.badRequest(out);
+                return;
+            }
+            System.out.println(method);
+
+            final var path = requestLine[1];
+            if(!path.startsWith("/")){
+                requestHandler.badRequest(out);
+                return;
+            }
+            System.out.println(path);
+
+            final var versionProtocol = requestLine[2];
+            System.out.println(versionProtocol);
+
+
             requestBuilder
-                    .setMethod(parts[0])
-                    .setPath(parts[1])
-                    .setVersionHTTP(parts[2]);
+                    .setMethod(method)
+                    .setPath(path)
+                    .setVersionHTTP(versionProtocol);
 
-//            final var path = parts[1];
-//            if (!validPaths.contains(path)) {
-//                requestHandler.send404NotFound(out);
-//                return;
-//            }
-//
-//            final var filePath = Path.of(".", "public", path);
-//            final var mimeType = Files.probeContentType(filePath);
+            final var headersDelimiter = new byte[]{'\r', '\n', '\r', '\n'};
+            final var headersStart = requestLineEnd + requestLineDelimiter.length;
+            final var headersEnd = indexOf(buffer, headersDelimiter, headersStart, read);
+            if (headersEnd == -1) {
+                requestHandler.badRequest(out);
+                return;
+            }
 
-            //requestBuilder.setMimeType(mimeType);
-            requestBuilder.setMimeType("text");
+            in.reset();
+            in.skip(headersStart);
 
-            // special case for classic
-            //TODO добавить этот обработчик
-//            if (path.equals("/classic.html")) {
-//                final var template = Files.readString(filePath);
-//                final var content = template.replace(
-//                        "{time}",
-//                        LocalDateTime.now().toString()
-//                ).getBytes();
-//                request = requestBuilder
-//                        .setLength(content.length)
-//                        .build();
-//                requestHandler.response(out, mimeType, content.length);
-//                out.write(content);
-//                out.flush();
-//                return;
-//            }
+            final var headersBytes = in.readNBytes(headersEnd - headersStart);
+            final var headers = Arrays.asList(new String(headersBytes).split("\r\n"));
+            requestBuilder.setHeaders(headers);
+            System.out.println(headers);
 
-            //final var length = Files.size(filePath);
-            request = requestBuilder
-                    .setLength(80)
-                    //.setLength(length)
-                    .build();
+            if (!method.equals(GET)) {
+                in.skip(headersDelimiter.length);
+                // вычитываем Content-Length, чтобы прочитать body
+                final var contentLength = extractHeader(headers, "Content-Length");
+                if (contentLength.isPresent()) {
+                    final var length = Integer.parseInt(contentLength.get());
+                    final var bodyBytes = in.readNBytes(length);
 
+                    final String body = new String(bodyBytes);
+                    requestBuilder.setBody(body);
+
+                    System.out.println(body);
+                }
+            }
+
+            request = requestBuilder.build();
 
             if(!requestHandlersMap.containsKey(request.getMethod())){
                 requestHandler.send404NotFound(out);
@@ -101,5 +129,26 @@ public class ConnectionHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static int indexOf(byte[] array, byte[] target, int start, int max) {
+        outer:
+        for (int i = start; i < max - target.length + 1; i++) {
+            for (int j = 0; j < target.length; j++) {
+                if (array[i + j] != target[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
+
+    private static Optional<String> extractHeader(List<String> headers, String header) {
+        return headers.stream()
+                .filter(o -> o.startsWith(header))
+                .map(o -> o.substring(o.indexOf(" ")))
+                .map(String::trim)
+                .findFirst();
     }
 }

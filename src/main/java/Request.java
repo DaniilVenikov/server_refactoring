@@ -1,17 +1,17 @@
+import java.util.List;
+
 public class Request {
     private final String method;
     private final String path;
     private final String versionHTTP;
-    private final String mimeType;
-    private final long length;
-    private byte[] body;
+    private final List<String> headers;
+    private String body;
 
-    public Request(String method, String path, String versionHTTP, String mimeType, long length, byte[] body){
+    public Request(String method, String path, String versionHTTP, List<String> headers, String body){
         this.method = method;
         this.path = path;
         this.versionHTTP = versionHTTP;
-        this.mimeType = mimeType;
-        this.length = length;
+        this.headers = headers;
         this.body = body;
     }
 
@@ -28,15 +28,7 @@ public class Request {
         return versionHTTP;
     }
 
-    public String getMimeType() {
-        return mimeType;
-    }
-
-    public long getLength() {
-        return length;
-    }
-
-    public byte[] getBody() {
+    public String getBody() {
         return body;
     }
 }

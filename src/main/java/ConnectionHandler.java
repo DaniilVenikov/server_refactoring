@@ -18,7 +18,6 @@ public class ConnectionHandler implements Runnable {
 
     @Override
     public void run() {
-            while (true) {
                 try  {
                     final BufferedOutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
                     final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -28,12 +27,12 @@ public class ConnectionHandler implements Runnable {
 
                     if (parts.length != 3) {
                         // just close socket
-                        continue;
+                        return;
                     }
 
                     final var path = parts[1];
                     if (!requestHandler.isValidPath(out, validPaths, path)) {
-                        continue;
+                        return;
                     }
 
                     final var filePath = Path.of(".", "public", path);
@@ -49,7 +48,7 @@ public class ConnectionHandler implements Runnable {
                         requestHandler.response(out, mimeType, content.length);
                         out.write(content);
                         out.flush();
-                        continue;
+                        return;
                     }
 
                     final var length = Files.size(filePath);
@@ -59,6 +58,5 @@ public class ConnectionHandler implements Runnable {
                 } catch (IOException e){
                     e.printStackTrace();
                 }
-            }
     }
 }

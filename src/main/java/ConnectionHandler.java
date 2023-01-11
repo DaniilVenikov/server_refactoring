@@ -19,6 +19,7 @@ public class ConnectionHandler {
     }
 
 
+
     public void handle() {
         try {
             System.out.println(Thread.currentThread().getName());
@@ -150,5 +151,6 @@ public class ConnectionHandler {
                 .map(o -> o.substring(o.indexOf(" ")))
                 .map(String::trim)
                 .findFirst();
+
     }
 }

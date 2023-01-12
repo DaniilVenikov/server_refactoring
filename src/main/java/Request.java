@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Request {
+public class Request implements ParseQueryParams{
     private final String method;
     private final String pathWithQueryParams;
     private final String versionHTTP;
@@ -42,6 +42,7 @@ public class Request {
         return body;
     }
 
+    @Override
     public List<NameValuePair> getQueryParams() throws URISyntaxException {
         if(queryParams.isEmpty()) {
             queryParams = URLEncodedUtils.parse(new URI(pathWithQueryParams), StandardCharsets.UTF_8);
@@ -49,6 +50,7 @@ public class Request {
         return queryParams;
     }
 
+    @Override
     public List<NameValuePair> getQueryParam(String nameParam){
         if(queryParams.isEmpty()) {
             System.out.println("В запросе не было query-параметров");

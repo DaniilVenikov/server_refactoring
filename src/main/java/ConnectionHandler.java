@@ -1,5 +1,9 @@
+import org.apache.http.NameValuePair;
+
 import java.io.*;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -58,12 +62,12 @@ public class ConnectionHandler {
             }
             System.out.println(method);
 
-            final var path = requestLine[1];
-            if(!path.startsWith("/")){
+            final var pathWithQueryParams = requestLine[1];
+            if(!pathWithQueryParams.startsWith("/")){
                 requestHandler.badRequest(out);
                 return;
             }
-            System.out.println(path);
+            System.out.println(pathWithQueryParams);
 
             final var versionProtocol = requestLine[2];
             System.out.println(versionProtocol);
@@ -71,7 +75,7 @@ public class ConnectionHandler {
 
             requestBuilder
                     .setMethod(method)
-                    .setPath(path)
+                    .setPath(pathWithQueryParams)
                     .setVersionHTTP(versionProtocol);
 
             final var headersDelimiter = new byte[]{'\r', '\n', '\r', '\n'};
@@ -107,19 +111,20 @@ public class ConnectionHandler {
 
             request = requestBuilder.build();
 
+
             if(!requestHandlersMap.containsKey(request.getMethod())){
                 requestHandler.send404NotFound(out);
                 return;
             }
 
             var pathHandlers = requestHandlersMap.get(request.getMethod());
-
-            if(!pathHandlers.containsKey(request.getPath())){
+            if(!pathHandlers.containsKey(request.getPathWithoutQueryParams())){
                 requestHandler.send404NotFound(out);
                 return;
             }
 
-            Handler handler = pathHandlers.get(request.getPath());
+
+            Handler handler = pathHandlers.get(request.getPathWithoutQueryParams());
 
             try {
                 handler.handle(request, out);

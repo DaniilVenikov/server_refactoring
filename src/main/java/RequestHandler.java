@@ -1,7 +1,5 @@
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.util.List;
 
 interface RequestHandler{
     void send404NotFound(BufferedOutputStream out) throws IOException;

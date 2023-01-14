@@ -1,12 +1,9 @@
-import org.apache.http.NameValuePair;
-
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.net.Socket;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectionHandler {
@@ -97,7 +94,7 @@ public class ConnectionHandler {
             if (!method.equals(GET)) {
                 in.skip(headersDelimiter.length);
                 // вычитываем Content-Length, чтобы прочитать body
-                final var contentLength = extractHeader(headers, "Content-Length");
+                final var contentLength = Request.extractHeader(headers, "Content-Length");
                 if (contentLength.isPresent()) {
                     final var length = Integer.parseInt(contentLength.get());
                     final var bodyBytes = in.readNBytes(length);
@@ -123,7 +120,6 @@ public class ConnectionHandler {
                 return;
             }
 
-
             Handler handler = pathHandlers.get(request.getPathWithoutQueryParams());
 
             try {
@@ -148,14 +144,5 @@ public class ConnectionHandler {
             return i;
         }
         return -1;
-    }
-
-    private static Optional<String> extractHeader(List<String> headers, String header) {
-        return headers.stream()
-                .filter(o -> o.startsWith(header))
-                .map(o -> o.substring(o.indexOf(" ")))
-                .map(String::trim)
-                .findFirst();
-
     }
 }

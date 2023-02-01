@@ -27,6 +27,10 @@ public class Main {
             System.out.println(response);
             response(responseStream, response);
         });
+        server.addHandler("POST", "/multipart", (request, responseStream) ->{
+            request.parseMultipart();
+            response(responseStream, "Hello from multipart");
+        });
 
         server.listen(9999);
     }

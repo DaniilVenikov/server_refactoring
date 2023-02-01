@@ -107,6 +107,7 @@ public class ConnectionHandler {
             }
 
             request = requestBuilder.build();
+            request.setInputStream(in);
 
 
             if(!requestHandlersMap.containsKey(request.getMethod())){

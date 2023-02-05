@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Request implements ParseQueryParams, ParsePostParams, ParseMultipart, RequestContext{
+public class Request implements ParseQueryParams, ParsePostParams{
     private final String method;
     private final String pathWithQueryParams;
     private final String versionHTTP;
@@ -63,6 +63,14 @@ public class Request implements ParseQueryParams, ParsePostParams, ParseMultipar
 
     public void putFile(String name, FileItem item) {
         files.put(name, item);
+    }
+
+    public Set<String> getFilesName() {
+        return files.keySet();
+    }
+
+    public FileItem getFile(String name) {
+        return files.get(name);
     }
 
     @Override
@@ -139,33 +147,34 @@ public class Request implements ParseQueryParams, ParsePostParams, ParseMultipar
 
     }
 
-    @Override
-    public void parseMultipart() throws FileUploadException {
-        var list = new FileUpload(new DiskFileItemFactory()).parseRequest(this);
-        for (FileItem item : list){
-            if(item.getContentType() == null){
-                this.putRequestParam(item.getFieldName(), item.getString());
-            } else this.putFile(item.getName(), item);
-        }
-    }
+    //TODO parse multipart request
+//    @Override
+//    public void parseMultipart() throws FileUploadException {
+//        var list = new FileUpload(new DiskFileItemFactory()).parseRequest(this);
+//        for (FileItem item : list){
+//            if(item.getContentType() == null){
+//                this.putRequestParam(item.getFieldName(), item.getString());
+//            } else this.putFile(item.getName(), item);
+//        }
+//    }
 
-    @Override
-    public String getCharacterEncoding() {
-        return StandardCharsets.UTF_8.toString();
-    }
-
-    @Override
-    public String getContentType() {
-        return extractHeader(headers, "Content-Type").orElse(null);
-    }
-
-    @Override
-    public int getContentLength() {
-        return extractHeader(headers, "Content-Length").map(Integer::parseInt).orElse(0);
-    }
-
-    @Override
-    public InputStream getInputStream() {
-        return in;
-    }
+//    @Override
+//    public String getCharacterEncoding() {
+//        return StandardCharsets.UTF_8.toString();
+//    }
+//
+//    @Override
+//    public String getContentType() {
+//        return extractHeader(headers, "Content-Type").orElse(null);
+//    }
+//
+//    @Override
+//    public int getContentLength() {
+//        return extractHeader(headers, "Content-Length").map(Integer::parseInt).orElse(0);
+//    }
+//
+//    @Override
+//    public InputStream getInputStream() {
+//        return in;
+//    }
 }

@@ -1,6 +1,9 @@
+import org.apache.commons.fileupload.FileItem;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
@@ -125,6 +128,13 @@ public class ConnectionHandler {
 
             try {
                 handler.handle(request, out);
+                for (String fileName : request.getFilesName()) {
+                    FileItem item = request.getFile(fileName);
+                    System.out.println(fileName);
+                    System.out.println();
+                    InputStream input = item.getInputStream();
+                    System.out.println(new String(input.readNBytes(input.available())));
+                }
             } catch (Exception e){
                 System.out.println(e.getMessage());
                 requestHandler.send500InternalServerError(out);
